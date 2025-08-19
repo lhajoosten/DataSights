@@ -1,5 +1,5 @@
 """
-Talk to Your Data - Backend Application
+DataSights - Backend Application
 
 A FastAPI application that processes CSV uploads and generates charts
 based on natural language questions using LLM integration.

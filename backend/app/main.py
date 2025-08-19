@@ -27,7 +27,7 @@ settings = get_settings()
 
 # Create FastAPI application
 app = FastAPI(
-    title="Talk to Your Data API",
+    title="DataSights API",
     description="Upload CSV files and generate charts from natural language questions",
     version="1.0.0",
     docs_url="/docs",
@@ -67,7 +67,7 @@ app.include_router(api_router, prefix="/api/v1")
 @app.on_event("startup")
 async def startup_event():
     """Application startup event."""
-    logger.info("Starting Talk to Your Data API")
+    logger.info("Starting DataSights API")
     logger.info(f"Environment: {settings.environment}")
     logger.info(f"LLM Service: {'OpenAI API' if settings.openai_api_key else 'Fallback Mode'}")
     
@@ -80,14 +80,14 @@ async def startup_event():
 @app.on_event("shutdown") 
 async def shutdown_event():
     """Application shutdown event."""
-    logger.info("Shutting down Talk to Your Data API")
+    logger.info("Shutting down DataSights API")
 
 
 @app.get("/")
 async def root():
     """Root endpoint with API information."""
     return JSONResponse({
-        "message": "Talk to Your Data API",
+        "message": "DataSights API",
         "version": "1.0.0",
         "docs": "/docs",
         "health": "/api/v1/health",

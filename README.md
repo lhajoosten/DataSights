@@ -13,13 +13,13 @@ A full-stack application that allows users to upload CSV files and ask natural l
 ## Quick Start
 
 ### Prerequisites
-- Node.js 18+ and npm
-- Python 3.9+
-- OpenAI API key (optional - includes fallback mode)
+- Node.js 20+ and npm
+- Python 3.11+
+- OpenAI API key
 
 ### Setup
 
 1. Clone and navigate to project:
 ```bash
-git clone <repo-url>
-cd talk-to-your-data
+git clone https://github.com/lhajoosten/DataSights.git
+cd DataSights

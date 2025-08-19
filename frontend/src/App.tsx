@@ -52,7 +52,7 @@ function App() {
             <div className="flex items-center space-x-3">
               <BarChart3 className="h-8 w-8 text-primary-600" />
               <h1 className="text-xl font-semibold text-gray-900">
-                Talk to Your Data
+                DataSights
               </h1>
             </div>
             

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", description="Logging level")
     
     # API Configuration
-    api_title: str = Field(default="Talk to Your Data API", description="API title")
+    api_title: str = Field(default="DataSights API", description="API title")
     api_version: str = Field(default="1.0.0", description="API version")
     
     # CORS

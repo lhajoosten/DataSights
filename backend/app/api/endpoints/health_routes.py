@@ -18,7 +18,7 @@ async def basic_health_check():
     """Basic health check endpoint."""
     return JSONResponse({
         "status": "healthy",
-        "service": "talk-to-your-data-api",
+        "service": "datasights-api",
         "timestamp": "2025-08-19T14:23:06Z"
     })
 
@@ -31,7 +31,7 @@ async def detailed_health_check(settings: Settings = Depends(get_settings)):
     """
     health_status = {
         "status": "healthy",
-        "service": "talk-to-your-data-api",
+        "service": "datasights-api",
         "version": "1.0.0",
         "environment": settings.environment,
         "checks": {}
