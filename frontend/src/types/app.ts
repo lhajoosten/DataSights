@@ -1,3 +1,5 @@
+import { CSVPreviewResponse, ChatMessage, ApiError } from '@/types/api';
+
 /**
  * Application-specific types and enums.
  * Similar to domain models in .NET applications.
@@ -23,7 +25,7 @@ export interface AppState {
   currentFile?: CSVPreviewResponse;
   chatHistory: ChatMessage[];
   isLoading: boolean;
-  error?: string;
+  error: string | ApiError;
 }
 
 export interface UploadState {

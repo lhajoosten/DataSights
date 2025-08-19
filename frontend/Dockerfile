@@ -17,6 +17,8 @@ RUN npm run build
 FROM nginx:stable-alpine
 # Remove default html
 RUN rm -rf /usr/share/nginx/html/*
+# (optional) remove any packaged default conf so our conf replaces it cleanly
+RUN rm -f /etc/nginx/conf.d/default.conf || true
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy custom nginx config that proxies /api to the backend service

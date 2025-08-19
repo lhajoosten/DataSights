@@ -6,13 +6,12 @@
 import React, { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { clsx } from 'clsx';
-import { Upload, File, AlertCircle } from 'lucide-react';
+import { Upload, AlertCircle } from 'lucide-react';
 import { UploadStatus } from '@/types/app';
 
 interface FileDropzoneProps {
   onFileSelect: (file: File) => void;
   uploadStatus: UploadStatus;
-  accept?: string;
   maxSize?: number;
   disabled?: boolean;
   className?: string;
@@ -21,12 +20,11 @@ interface FileDropzoneProps {
 export const FileDropzone: React.FC<FileDropzoneProps> = ({
   onFileSelect,
   uploadStatus,
-  accept = '.csv',
   maxSize = 10 * 1024 * 1024, // 10MB
   disabled = false,
   className,
 }) => {
-  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
+  const onDrop = useCallback((acceptedFiles: any[]) => {
     if (acceptedFiles.length > 0) {
       onFileSelect(acceptedFiles[0]);
     }

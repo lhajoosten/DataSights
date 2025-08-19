@@ -3,7 +3,7 @@
  * Similar to AppComponent in Angular with routing and state management.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { UploadContainer } from '@/components/upload/UploadContainer';
 import { ChatContainer } from '@/components/chat/ChatContainer';
 import { ChartRenderer } from '@/components/chart/ChartRenderer';

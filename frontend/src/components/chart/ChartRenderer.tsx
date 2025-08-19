@@ -67,14 +67,14 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
           chart_spec.group_by.map((groupKey, index) => (
             <Bar
               key={groupKey}
-              dataKey={chart_spec.y}
+              dataKey={chart_spec.y as any} // cast to satisfy DataKey<any> when y may be optional
               fill={CHART_COLORS[index % CHART_COLORS.length]}
               name={chart_spec.y}
             />
           ))
         ) : (
           <Bar
-            dataKey={chart_spec.y}
+            dataKey={chart_spec.y as any} // cast to satisfy DataKey<any>
             fill={CHART_COLORS[0]}
             name={chart_spec.y}
           />
@@ -101,7 +101,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
         <Legend />
         <Line
           type="monotone"
-          dataKey={chart_spec.y}
+          dataKey={chart_spec.y as any} // cast to satisfy DataKey<any>
           stroke={CHART_COLORS[0]}
           strokeWidth={2}
           dot={{ r: 4 }}
@@ -136,7 +136,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
         />
         <Scatter
           name="Data Points"
-          dataKey={chart_spec.y}
+          dataKey={chart_spec.y as any} // cast to satisfy DataKey<any>
           fill={CHART_COLORS[0]}
         />
       </ScatterChart>
@@ -156,7 +156,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
           fill="#8884d8"
           dataKey="value"
         >
-          {data.map((entry, index) => (
+          {data.map((_, index) => ( // use _ for unused first param
             <Cell 
               key={`cell-${index}`} 
               fill={CHART_COLORS[index % CHART_COLORS.length]} 

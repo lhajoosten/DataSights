@@ -21,7 +21,8 @@ export class ChatService {
     chartSpec: any, 
     fileId: string
   ): Promise<ApiResponse<any>> {
-    return ApiService.post<any>('/chat/validate-chart', chartSpec, {
+    return ApiService.post<any>('/chat/validate-chart', {
+      data: chartSpec,
       params: { file_id: fileId }
     });
   }

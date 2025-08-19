@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { ChatService } from '@/services/chat.service';
-import { ChatMessage, ChatResponse, ChartData } from '@/types/api';
+import { ChatMessage, ChartData } from '@/types/api';
 import { ChatStatus } from '@/types/app';
 
 interface UseChatResult {
