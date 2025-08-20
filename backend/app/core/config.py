@@ -1,52 +1,42 @@
 """
-Application configuration using Pydantic settings.
-Similar to IOptions<T> pattern in .NET for strongly-typed configuration.
+Application configuration management.
+Similar to IOptions<T> pattern in .NET applications.
 """
 
-from functools import lru_cache
-from typing import List
-from pydantic import Field
 from pydantic_settings import BaseSettings
+from typing import List
+import os
 
 
 class Settings(BaseSettings):
-    """Application settings with environment variable binding."""
+    """Application settings with environment variable support."""
     
     # Application
-    environment: str = Field(default="development", description="Application environment")
-    log_level: str = Field(default="INFO", description="Logging level")
+    environment: str = "development"
+    debug: bool = False
     
     # API Configuration
-    api_title: str = Field(default="DataSights API", description="API title")
-    api_version: str = Field(default="1.0.0", description="API version")
-    
-    # CORS
-    allowed_origins: List[str] = Field(
-        default=["http://localhost:5173", "http://localhost:3000"],
-        description="Allowed CORS origins"
-    )
+    api_title: str = "Talk to Your Data API"
+    api_version: str = "1.0.0"
+    allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:5173"]
     
     # File Upload
-    max_file_size_mb: int = Field(default=10, description="Maximum file size in MB")
-    upload_dir: str = Field(default="/tmp/uploads", description="Upload directory")
+    max_file_size_mb: int = 10
+    upload_dir: str = "/tmp/uploads"
     
     # LLM Configuration
-    openai_api_key: str = Field(default="", description="OpenAI API key")
-    openai_model: str = Field(default="gpt-3.5-turbo", description="OpenAI model to use")
-    llm_timeout_seconds: int = Field(default=30, description="LLM request timeout")
+    openai_api_key: str = ""
+    openai_model: str = "gpt-3.5-turbo"
+    llm_timeout_seconds: int = 30
     
-    # Rate Limiting
-    rate_limit_requests: int = Field(default=10, description="Requests per minute per IP")
+    # Logging
+    log_level: str = "INFO"
     
     class Config:
         env_file = ".env"
         case_sensitive = False
 
 
-@lru_cache()
 def get_settings() -> Settings:
-    """
-    Get cached settings instance.
-    Similar to dependency injection pattern in .NET.
-    """
+    """Get application settings instance."""
     return Settings()
