@@ -117,38 +117,50 @@ class LLMService:
             raise LLMServiceException(f"API error: {str(e)}")
     
     def _build_system_prompt(self, csv_metadata: CSVMetadata) -> str:
-        """Build clear, concise system prompt."""
+        """Enhanced system prompt for better multi-dimensional understanding."""
         numeric_cols = csv_metadata.get_numeric_columns()
         categorical_cols = csv_metadata.get_categorical_columns()
         datetime_cols = csv_metadata.get_datetime_columns()
         
-        return f"""You are a data visualization assistant. Create chart specifications from user questions.
+        return f"""You are a data visualization expert. Create chart specifications for complex, multi-dimensional data analysis.
 
-DATASET INFO:
-- Rows: {csv_metadata.row_count:,}
-- Columns: {csv_metadata.columns}
-- Numeric: {numeric_cols}
-- Categories: {categorical_cols}
-- Dates: {datetime_cols}
+        DATASET INFO:
+        - Rows: {csv_metadata.row_count:,}
+        - Columns: {csv_metadata.columns}
+        - Numeric: {numeric_cols}
+        - Categories: {categorical_cols}
+        - Dates: {datetime_cols}
 
-RESPOND WITH JSON ONLY:
-{{
-  "explanation": "Brief description",
-  "chart_spec": {{
-    "chart_type": "bar",
-    "x": "column_name",
-    "y": "column_name", 
-    "aggregation": "sum",
-    "title": "Chart Title"
-  }}
-}}
+        ADVANCED PATTERNS:
+        1. **Multi-dimensional grouping**: "by region and product" → use group_by: ["region", "product"]
+        2. **Time comparisons**: "over time by region" → group_by: ["region"] + time extraction
+        3. **Calculated fields**: "revenue" → calculate from units_sold * unit_price
 
-RULES:
-- Use only existing column names: {csv_metadata.columns}
-- For multi-dimensional: use "group_by": ["col1", "col2"]
-- Always include "explanation" field
-- Keep it simple and working"""
-    
+        RESPOND WITH JSON:
+        {{
+        "explanation": "Brief description",
+        "chart_spec": {{
+            "chart_type": "bar|line",
+            "x": "primary_dimension",
+            "y": "metric_column", 
+            "aggregation": "sum",
+            "group_by": ["secondary_dimension"],
+            "calculation": {{
+            "field_name": "revenue",
+            "formula": "units_sold * unit_price",
+            "description": "Revenue calculation"
+            }},
+            "title": "Descriptive Title"
+        }}
+        }}
+
+        EXAMPLES:
+        - "units sold by region and product" → x: "region", group_by: ["product"]
+        - "revenue by product across regions" → x: "product", group_by: ["region"], calculation: revenue
+        - "compare by region over time" → x: "date", group_by: ["region"]
+
+        Available columns: {csv_metadata.columns}"""
+
     def _build_user_prompt(self, question: str) -> str:
         """Build simple user prompt."""
         return f"""Question: "{question}"

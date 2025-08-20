@@ -1,5 +1,5 @@
 """
-Chart specification and generation models - fixed validation.
+Chart specification and generation models with calculated field support.
 """
 
 from typing import List, Dict, Any, Optional, Union, Literal
@@ -27,9 +27,7 @@ class FilterSpec(BaseModel):
 
 
 class ChartSpec(BaseModel):
-    """
-    Simple chart specification - fixed validation issues.
-    """
+    """Enhanced chart specification with calculated field support."""
     
     chart_type: Literal["bar", "line", "scatter", "pie"] = Field(
         ..., description="Type of chart to generate"
