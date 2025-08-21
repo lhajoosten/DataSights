@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     debug: bool = False
     
     # API Configuration
-    api_title: str = "Talk to Your Data API"
+    api_title: str = "DataSights API"
     api_version: str = "1.0.0"
     allowed_origins: List[str] = ["http://localhost:3000", "http://localhost:5173"]
     
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     
     # LLM Configuration
     openai_api_key: str = ""
-    openai_model: str = "gpt-3.5-turbo"
+    openai_model: str = "gpt-4o"
     llm_timeout_seconds: int = 30
     
     # Logging
