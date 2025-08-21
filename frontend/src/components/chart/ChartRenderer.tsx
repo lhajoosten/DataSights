@@ -1,77 +1,113 @@
 /**
- * Enhanced chart renderer with proper TypeScript types.
- * Follows Angular patterns with strong typing and null safety.
+ * ChartRenderer Component - Visualizes data using chart libraries
+ * 
+ * This component takes structured chart data and renders it as interactive charts.
+ * It's the final step in our data visualization pipeline:
+ * 1. User uploads CSV
+ * 2. User asks question in natural language
+ * 3. LLM converts question to chart specification
+ * 4. Backend processes data according to specification
+ * 5. THIS COMPONENT renders the final chart
+ * 
+ * Key Features:
+ * - Supports multiple chart types (bar, line, scatter, pie)
+ * - Handles multi-dimensional data (e.g., "sales by region and product")
+ * - Responsive design that works on all screen sizes
+ * - Type-safe with comprehensive TypeScript interfaces
  */
 
 import React from 'react';
+// Recharts is a React chart library built on D3.js
+// It provides pre-built chart components that are easy to use
 import {
-  BarChart,
-  LineChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
+  BarChart,      // For bar charts (good for categories)
+  LineChart,     // For line charts (good for trends over time)
+  Bar,           // Individual bar component
+  Line,          // Individual line component
+  XAxis,         // Horizontal axis
+  YAxis,         // Vertical axis
+  CartesianGrid, // Background grid lines
+  Tooltip,       // Hover information
+  Legend,        // Chart legend
+  ResponsiveContainer, // Makes charts responsive to container size
 } from 'recharts';
-import { clsx } from 'clsx';
-import { ChartData } from '@/types/api';
-import { Card, CardHeader, CardContent } from '@/components/ui/Card';
+import { clsx } from 'clsx'; // Utility for conditional CSS classes
+import { ChartData } from '@/types/api'; // Our custom data types
+import { Card, CardHeader, CardContent } from '@/components/ui/Card'; // UI components
 
+// TypeScript interface defines what props this component accepts
 interface ChartRendererProps {
-  chartData: ChartData;
-  className?: string;
+  chartData: ChartData;  // The data and configuration from backend
+  className?: string;    // Optional CSS classes for styling
 }
 
+// TypeScript interface for processed chart data structure
 interface ProcessedChartData {
-  data: Record<string, any>[];
-  seriesKeys: string[];
-  colors: string[];
+  data: Record<string, any>[]; // Array of data objects for the chart
+  seriesKeys: string[];        // Names of data series (for multi-line charts)
+  colors: string[];           // Colors for each data series
 }
 
+// React Functional Component with TypeScript typing
 export const ChartRenderer: React.FC<ChartRendererProps> = ({
   chartData,
   className,
 }) => {
+  // Destructure the chart data into its components
   const { chart_spec, data, summary_stats } = chartData;
 
-  // Color palette for multi-series charts
+  // Predefined color palette for multi-series charts
+  // These colors provide good contrast and are colorblind-friendly
   const colorPalette = [
-    '#3b82f6', '#ef4444', '#10b981', '#f59e0b', 
-    '#8b5cf6', '#f97316', '#06b6d4', '#84cc16'
+    '#3b82f6', // Blue
+    '#ef4444', // Red  
+    '#10b981', // Green
+    '#f59e0b', // Yellow
+    '#8b5cf6', // Purple
+    '#f97316', // Orange
+    '#06b6d4', // Cyan
+    '#84cc16'  // Lime
   ];
 
   /**
-   * Process data for multi-dimensional visualization.
-   * Handles grouping and reshaping for complex charts.
-   * Follows TypeScript best practices with proper typing.
+   * Process and reshape data for chart rendering
+   * 
+   * This function handles the complex task of converting our structured data
+   * into the format that Recharts expects. It needs to handle both simple
+   * charts (like "sales by region") and complex multi-dimensional charts
+   * (like "sales by region and product").
+   * 
+   * Returns: ProcessedChartData with formatted data, series keys, and colors
    */
   const processChartData = (): ProcessedChartData => {
+    // Guard clause: handle empty data gracefully
     if (!data || data.length === 0) {
       return { data: [], seriesKeys: [], colors: [] };
     }
 
-    // For simple charts (no group_by)
+    // SIMPLE CHARTS: No grouping, just x and y values
+    // Example: "Show total sales by region" -> one bar per region
     if (!chart_spec.group_by || chart_spec.group_by.length === 0) {
       return {
-        data,
-        seriesKeys: [chart_spec.y || 'value'],
-        colors: [colorPalette[0]]
+        data,                                    // Use data as-is
+        seriesKeys: [chart_spec.y || 'value'],  // Single data series
+        colors: [colorPalette[0]]               // Use first color
       };
     }
 
-    // For multi-dimensional charts
-    const groupByKey = chart_spec.group_by[0]; // Primary grouping dimension
-    const xKey = chart_spec.x;
-    const yKey = chart_spec.y;
+    // MULTI-DIMENSIONAL CHARTS: Grouping by additional dimensions
+    // Example: "Show sales by region and product" -> multiple bars per region
+    const groupByKey = chart_spec.group_by[0]; // Primary grouping dimension (e.g., "product")
+    const xKey = chart_spec.x;                 // X-axis field (e.g., "region")
+    const yKey = chart_spec.y;                 // Y-axis field (e.g., "sales")
 
+    // Validation: ensure we have all required fields
     if (!xKey || !yKey || !groupByKey) {
+      // Fallback to simple chart format
       return { data, seriesKeys: [yKey || 'value'], colors: [colorPalette[0]] };
     }
 
-    // Reshape data for multi-series visualization
+    // Transform data for multi-series visualization
     const reshapedData = reshapeForMultiSeries(data, xKey, yKey, groupByKey);
     const seriesKeys = getUniqueValues(data, groupByKey);
     const colors = seriesKeys.map((_, index) => colorPalette[index % colorPalette.length]);
@@ -84,8 +120,24 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
   };
 
   /**
-   * Reshape data for multi-series charts (grouped bars, multiple lines).
-   * Follows functional programming patterns with proper type safety.
+   * Reshape data for multi-series charts
+   * 
+   * This function converts tabular data into the format needed for grouped charts.
+   * 
+   * Input example (tabular format):
+   * [
+   *   {region: "North", product: "A", sales: 100},
+   *   {region: "North", product: "B", sales: 150},
+   *   {region: "South", product: "A", sales: 200}
+   * ]
+   * 
+   * Output example (grouped format):
+   * [
+   *   {region: "North", "A": 100, "B": 150},
+   *   {region: "South", "A": 200, "B": 0}
+   * ]
+   * 
+   * This allows Recharts to render multiple bars/lines per x-axis category.
    */
   const reshapeForMultiSeries = (
     rawData: Record<string, any>[], 
@@ -93,11 +145,13 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
     yKey: string, 
     groupKey: string
   ): Record<string, any>[] => {
+    // Use a Map to group data by x-axis values
     const grouped = new Map<string, Record<string, any>>();
 
+    // Process each data row
     rawData.forEach(item => {
-      const xValue = String(item[xKey] ?? '');
-      const yValue = Number(item[yKey]) || 0;
+      const xValue = String(item[xKey] ?? '');  // X-axis value (e.g., "North")
+      const yValue = Number(item[yKey]) || 0;   // Y-axis value (e.g., 100)
       const groupValue = String(item[groupKey] ?? '');
 
       if (!grouped.has(xValue)) {

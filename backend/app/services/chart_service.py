@@ -1,29 +1,57 @@
 """
-Simplified chart service focused on core functionality.
-Clean, maintainable code following .NET patterns.
+Chart Service - Transforms raw CSV data into chart-ready format
+
+This service takes structured chart specifications (from the LLM service)
+and applies them to raw CSV data to create properly formatted chart data.
+
+Key Responsibilities:
+1. Data transformations (filtering, grouping, aggregating)
+2. Calculated fields (like revenue = units_sold * unit_price)
+3. Data validation and error handling
+4. Format conversion for frontend chart libraries
+
+Think of this as the "data processor" that takes instructions and raw data,
+then outputs perfectly formatted data ready for visualization.
 """
 
-import pandas as pd
-import numpy as np
+import pandas as pd  # Data manipulation library
+import numpy as np   # Numerical operations
 from typing import Dict, List, Any, Optional, Tuple
 import logging
 
+# Import our custom data models
 from app.models.chart_models import ChartSpec, ChartData, ChartValidationResult, FilterSpec
 from app.models.csv_models import CSVMetadata
 from app.core.exceptions import ValidationException, FileProcessingException
 
+# Set up logging for debugging
 logger = logging.getLogger(__name__)
 
 
 class ChartService:
     """
-    Chart data generation service with focus on reliability and maintainability.
-    Follows .NET Clean Architecture principles.
+    Chart Service - The "data processor" that prepares data for visualization
+    
+    This class handles all the data manipulation needed to create charts:
+    - Taking raw CSV data and chart specifications
+    - Applying filters, grouping, and aggregations
+    - Calculating derived fields (like revenue from units * price)
+    - Formatting the final data for frontend chart libraries
+    
+    The service follows a pipeline pattern: data flows through multiple
+    transformation steps, each one preparing it for the next step.
     """
     
     def __init__(self):
-        self.max_data_points = 1000
-        self.max_categories = 50
+        """
+        Initialize the chart service with default limits
+        
+        These limits prevent performance issues with very large datasets:
+        - max_data_points: Prevents charts from becoming unreadable
+        - max_categories: Prevents too many bars/lines in a single chart
+        """
+        self.max_data_points = 1000  # Maximum points to display on a chart
+        self.max_categories = 50     # Maximum categories (bars, lines, etc.)
     
     async def generate_chart_data(
         self, 
@@ -32,52 +60,78 @@ class ChartService:
         csv_metadata: CSVMetadata
     ) -> ChartData:
         """
-        Main orchestration method - follows Command pattern.
-        Clear pipeline: validate -> transform -> aggregate -> format
+        MAIN METHOD: Transform raw data into chart-ready format
+        
+        This is the primary method that orchestrates the entire data transformation
+        pipeline. It takes a chart specification (what the user wants) and raw CSV
+        data, then applies a series of transformations to create the final chart data.
+        
+        Parameters:
+        - chart_spec: Instructions for what chart to create (from LLM service)
+        - dataframe: Raw CSV data as a pandas DataFrame
+        - csv_metadata: Information about the CSV structure
+        
+        Returns:
+        - ChartData: Formatted data ready for frontend chart rendering
+        
+        The transformation pipeline:
+        1. Handle time-based operations (extract month from dates)
+        2. Calculate derived fields (revenue = units * price)
+        3. Apply any filters (only show data from 2024)
+        4. Apply grouping and aggregation (sum sales by region)
+        5. Format for frontend consumption
+        6. Add summary statistics
         """
         try:
-            logger.info(f"Generating chart: {chart_spec.chart_type}")
-            logger.info(f"Spec: X={chart_spec.x}, Y={chart_spec.y}, GroupBy={chart_spec.group_by}")
-            logger.info(f"Input data shape: {dataframe.shape}")
+            # Log what we're about to process for debugging
+            logger.info(f"Starting chart generation: {chart_spec.chart_type}")
+            logger.info(f"Chart spec: X={chart_spec.x}, Y={chart_spec.y}, GroupBy={chart_spec.group_by}")
+            logger.info(f"Input data shape: {dataframe.shape} (rows x columns)")
             
-            # Pipeline pattern - each step transforms data
+            # PIPELINE PATTERN: Each step transforms the data for the next step
+            # Start with a copy to avoid modifying the original data
             df = dataframe.copy()
+            
+            # Track what transformations we apply (for debugging and user feedback)
             transformations = []
             
-            # Step 1: Handle time-based grouping (extract month from dates)
+            # STEP 1: Handle time-based grouping (extract month from date columns)
+            # If user asks for "sales by month", we need to extract month from date column
             if chart_spec.x and 'month' in chart_spec.x.lower():
                 df, time_transformations = self._extract_month_from_date(df)
                 transformations.extend(time_transformations)
                 logger.info(f"After time extraction: {df.shape}")
             
-            # Step 2: Apply simple calculated fields (revenue = units_sold * unit_price)
+            # STEP 2: Calculate derived fields (like revenue = units_sold * unit_price)
+            # Many business questions involve calculated metrics not directly in the data
             if chart_spec.y == 'revenue' and 'revenue' not in df.columns:
                 df, calc_transformations = self._calculate_revenue_if_possible(df)
                 transformations.extend(calc_transformations)
                 logger.info(f"After revenue calculation: {df.shape}")
             
-            # Step 3: Apply filters
+            # STEP 3: Apply any filters (like "only show data from 2024")
             if chart_spec.filters:
                 df, filter_transformations = self._apply_filters(df, chart_spec.filters)
                 transformations.extend(filter_transformations)
                 logger.info(f"After filters: {df.shape}")
             
-            # Step 4: Apply aggregation with multi-dimensional support
+            # STEP 4: Apply grouping and aggregation (the core of most charts)
+            # This is where "sum sales by region" becomes actual grouped data
             if chart_spec.aggregation != "none" or chart_spec.group_by:
                 df, agg_transformations = self._apply_aggregation(df, chart_spec)
                 transformations.extend(agg_transformations)
                 logger.info(f"After aggregation: {df.shape}")
             
-            # Step 5: Validate result
+            # STEP 5: Validate we still have data to work with
             if df.empty:
-                logger.warning("No data after processing")
+                logger.warning("No data remaining after processing")
                 return self._create_empty_result(chart_spec, transformations)
             
-            # Step 6: Format for frontend consumption
+            # STEP 6: Format data for frontend chart libraries (Recharts)
             chart_data = self._format_for_frontend(chart_spec, df)
-            logger.info(f"Generated {len(chart_data)} data points")
+            logger.info(f"Generated {len(chart_data)} data points for chart")
             
-            # Step 7: Calculate summary statistics
+            # STEP 7: Calculate summary statistics for user insights
             summary_stats = self._calculate_summary_stats(df, chart_spec)
             
             return ChartData(

@@ -1,5 +1,15 @@
 """
-Simplified LLM service with clear prompts and structured responses.
+LLM Service - Handles communication with OpenAI GPT models
+
+This service acts as a bridge between our application and OpenAI's API.
+It takes natural language questions about data and converts them into
+structured chart specifications that our frontend can render.
+
+Key Responsibilities:
+1. Send user questions to OpenAI with proper context about the CSV data
+2. Parse AI responses into structured chart configurations
+3. Handle errors gracefully with fallback responses
+4. Maintain conversation context for follow-up questions
 """
 
 import json
@@ -10,32 +20,62 @@ from datetime import datetime
 import openai
 from openai import AsyncOpenAI
 
+# Import our custom data models
 from app.models.chat_models import LLMResponse, ChatMessage
 from app.models.chart_models import ChartSpec
 from app.models.csv_models import CSVMetadata
 from app.core.config import get_settings
 from app.core.exceptions import LLMServiceException
 
+# Set up logging to track what's happening in this service
 logger = logging.getLogger(__name__)
 
 
 class LLMService:
     """
-    Simple, reliable LLM service with fixed parsing.
+    LLM Service - The "brain" that converts natural language to chart specifications
+    
+    This class is responsible for:
+    - Communicating with OpenAI's GPT models
+    - Converting user questions like "show sales by region" into structured data
+    - Handling errors when the AI is unavailable or returns bad data
+    - Providing fallback responses when OpenAI is down
+    
+    Think of this as a translator between human language and chart configurations.
     """
     
     def __init__(self):
+        """
+        Initialize the LLM service
+        
+        This sets up the connection to OpenAI and prepares the service for use.
+        If no API key is provided, the service will work in "fallback mode" 
+        using simple rule-based responses instead of AI.
+        """
+        # Get application settings (like API keys)
         self.settings = get_settings()
+        
+        # This will hold our OpenAI client once initialized
         self.client = None
+        
+        # Try to set up the OpenAI connection
         self._initialize_client()
     
     def _initialize_client(self) -> None:
-        """Initialize OpenAI client if API key is available."""
+        """
+        Set up the OpenAI API client
+        
+        This method checks if we have an API key and creates the client.
+        The underscore prefix (_) means this is a "private" method - 
+        only used internally by this class.
+        """
         if self.settings.openai_api_key:
+            # Create async client for non-blocking API calls
             self.client = AsyncOpenAI(api_key=self.settings.openai_api_key)
-            logger.info("OpenAI client initialized")
+            logger.info("OpenAI client initialized successfully")
         else:
-            logger.warning("No OpenAI API key - using fallback mode")
+            # No API key means we'll use simple rule-based fallbacks
+            logger.warning("No OpenAI API key found - will use fallback mode")
     
     async def generate_chart_spec(
         self, 
@@ -44,19 +84,43 @@ class LLMService:
         context: Optional[List[ChatMessage]] = None
     ) -> LLMResponse:
         """
-        Main entry point: Generate chart specification from natural language.
+        MAIN METHOD: Convert a natural language question into a chart specification
+        
+        This is the primary function that external code calls. It takes a user's
+        question like "show sales by region" and returns a structured response
+        that tells the frontend exactly what kind of chart to create.
+        
+        Parameters:
+        - question: The user's natural language question ("show revenue by month")
+        - csv_metadata: Information about the uploaded CSV (column names, types, etc.)
+        - context: Previous conversation messages for follow-up questions
+        
+        Returns:
+        - LLMResponse: Contains either a chart specification or an error/clarification request
+        
+        Example flow:
+        1. User asks: "show sales by region"
+        2. This method sends that to OpenAI with CSV column info
+        3. OpenAI responds with: {"chart_type": "bar", "x": "region", "y": "sales"}
+        4. We validate and return that as a structured LLMResponse
         """
+        # Track how long this takes for performance monitoring
         start_time = datetime.now()
         
         try:
-            logger.info(f"Processing question: '{question}'")
-            logger.info(f"Available columns: {csv_metadata.columns}")
+            # Log what we're processing for debugging
+            logger.info(f"Processing user question: '{question}'")
+            logger.info(f"Available CSV columns: {csv_metadata.columns}")
             
+            # Choose between AI or fallback response
             if self.client:
+                # We have OpenAI available - use the smart AI approach
                 response = await self._call_openai_api(question, csv_metadata, context)
             else:
+                # No OpenAI - use simple rule-based fallback
                 response = self._create_fallback_response(question, csv_metadata)
             
+            # Calculate and record processing time
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
             response.processing_time_ms = processing_time
             
@@ -64,6 +128,7 @@ class LLMService:
             return response
             
         except Exception as e:
+            # Something went wrong - create a user-friendly error response
             logger.error(f"LLM service error: {str(e)}", exc_info=True)
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
             return self._create_error_response(question, processing_time)
